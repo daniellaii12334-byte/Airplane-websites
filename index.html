@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wings Over the Pacific</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#071321;color:#f6f0da;font-family:Arial,Helvetica,sans-serif}body{display:grid;place-items:center;padding:14px}.shell{width:min(1280px,100%);position:relative;border:1px solid #526a76;border-radius:16px;overflow:hidden;background:#10202b;box-shadow:0 22px 70px #000b}.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#111d25;border-bottom:1px solid #344957}.brand{font-weight:900;letter-spacing:3px;font-size:clamp(15px,2vw,23px)}.tag{color:#f6c85f;font-size:11px;letter-spacing:1px}.game-wrap{position:relative;width:100%;aspect-ratio:16/9;background:#87c8e7}.game{display:block;width:100%;height:100%}.hud{position:absolute;top:16px;left:18px;right:18px;display:flex;gap:10px;justify-content:space-between;pointer-events:none}.card{background:#0b1b27cc;border:1px solid #c7e2e04c;border-radius:9px;padding:8px 12px;min-width:112px}.label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#b9cbc9}.value{font-size:22px;font-weight:800}.meter{width:130px;height:9px;background:#253d47;border-radius:99px;margin-top:5px;overflow:hidden}.meter i{display:block;height:100%;width:100%;background:#7ecb72}.bottom{position:absolute;bottom:15px;left:18px;right:18px;display:flex;justify-content:space-between;align-items:end;pointer-events:none}.mission{background:#0b1b27cc;border-left:3px solid #f6c85f;border-radius:6px;padding:8px 11px;font-size:12px}.keys{font-size:11px;color:#d5e5df;text-align:right;text-shadow:0 1px 3px #000}.screen{position:absolute;inset:0;display:grid;place-items:center;background:#06101aaa}.panel{width:min(500px,calc(100% - 30px));text-align:center;background:#10222ccc;border:1px solid #e7d9a05c;border-radius:14px;padding:30px;backdrop-filter:blur(8px);box-shadow:0 16px 40px #0008}.panel h1{margin:0 0 9px;font-size:clamp(25px,5vw,48px);letter-spacing:2px}.panel p{color:#d7e4dc;line-height:1.5;margin:10px auto 20px}.btn{border:0;border-radius:7px;padding:12px 20px;background:#f6c85f;color:#172027;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:1px;margin:4px}.btn.secondary{background:#294250;color:#eaf4ee}.hidden{display:none}.modal{position:absolute;inset:0;display:grid;place-items:center;background:#06101acc}.modal .panel{max-width:460px}.close{float:right;background:none;border:0;color:#fff;font-size:24px;cursor:pointer}.footer{padding:10px 18px;color:#93a9ad;font-size:11px;text-align:center;border-top:1px solid #344957}@media(max-width:650px){.hud{top:8px;left:8px;right:8px;gap:5px}.card{min-width:0;padding:5px 7px}.card:nth-child(3){display:none}.value{font-size:16px}.meter{width:80px}.bottom{left:8px;right:8px;bottom:8px}.keys{display:none}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="topbar"><div class="brand">WINGS OVER THE PACIFIC</div><div class="tag">HISTORY-INSPIRED ARCADE MISSION</div></header>
+<section class="game-wrap">
+<canvas id="game" aria-label="Airplane game"></canvas>
+<div class="hud"><div class="card"><div class="label">Hull integrity</div><div class="meter"><i id="healthBar"></i></div></div><div class="card"><div class="label">Ammo</div><div class="value" id="ammo">36</div></div><div class="card"><div class="label">Score</div><div class="value" id="score">00000</div></div><div class="card"><div class="label">Wave</div><div class="value" id="wave">01</div></div></div>
+<div class="bottom"><div class="mission" id="mission">Mission ready — clear the interceptors.</div><div class="keys">MOVE: W / S or ↑ / ↓<br>FIRE: SPACE or click · PAUSE: P</div></div>
+<div class="screen" id="start"><div class="panel"><h1>WINGS OVER THE PACIFIC</h1><p>Guide your bomber through a changing sky, collect supplies, and defend your formation from incoming interceptors.</p><button class="btn" id="startBtn">Start mission</button></div></div>
+<div class="screen hidden" id="gameOver"><div class="panel"><h1>MISSION ENDED</h1><p id="endText">Your bomber has been forced to turn back.</p><button class="btn" id="againBtn">Fly again</button></div></div>
+</section><div class="footer">A fictional, respectful arcade scenario inspired by WWII aviation history. No real people or events are depicted.</div>
+</main>
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');const W=1280,H=720;let dpr=1;
+function resize(){dpr=Math.min(devicePixelRatio||1,2);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
+const $=id=>document.getElementById(id);let running=false,paused=false,last=0,t=0,scroll=0,score=0,wave=1,ammo=36,health=100,fire=false,keys={},player,bullets=[],enemies=[],enemyBullets=[],pickups=[],clouds=[];
+for(let i=0;i<18;i++)clouds.push({x:Math.random()*W,y:60+Math.random()*280,s:.55+Math.random()*1.6,alpha:.18+Math.random()*.3});
+function reset(){score=0;wave=1;ammo=36;health=100;t=0;scroll=0;bullets=[];enemies=[];enemyBullets=[];pickups=[];player={x:190,y:360,r:28,cool:0};for(let i=0;i<5;i++)spawnEnemy(700+i*170);updateHud();}
+function spawnEnemy(x=W+Math.random()*250){let y=100+Math.random()*500;enemies.push({x,y,r:29,v:95+wave*7+Math.random()*38,hp:1,cool:.8+Math.random()*1.5});}
+function spawnPickup(x){pickups.push({x,y:100+Math.random()*500,type:Math.random()<.52?'ammo':'med',r:17})}
+function updateHud(){$('ammo').textContent=String(ammo).padStart(2,'0');$('score').textContent=String(score).padStart(5,'0');$('wave').textContent=String(wave).padStart(2,'0');$('healthBar').style.width=health+'%';$('healthBar').style.background=health<35?'#e86d57':'#7ecb72'}
+function start(){reset();running=true;paused=false;$('start').classList.add('hidden');$('gameOver').classList.add('hidden');$('mission').textContent='Formation moving east — watch the horizon.';last=performance.now();requestAnimationFrame(loop)}
+function end(){running=false;$('endText').textContent='Score '+String(score).padStart(5,'0')+' — the formation is heading home.';$('gameOver').classList.remove('hidden')}
+function shoot(){if(!running||paused||ammo<=0)return;if(player.cool<=0){bullets.push({x:player.x+45,y:player.y,v:560});ammo--;player.cool=.16;updateHud();}}
+function hit(a,b){return Math.hypot(a.x-b.x,a.y-b.y)<a.r+b.r}
+function update(dt){t+=dt;scroll+=dt*(100+wave*6);player.cool=Math.max(0,player.cool-dt);let dy=(keys.ArrowUp||keys.w?-1:0)+(keys.ArrowDown||keys.s?1:0);player.y=Math.max(75,Math.min(H-75,player.y+dy*300*dt));
+clouds.forEach(c=>{c.x-=dt*45*c.s;if(c.x<-180)c.x=W+100});
+bullets.forEach(b=>b.x+=b.v*dt);bullets=bullets.filter(b=>b.x<W+30);enemyBullets.forEach(b=>b.x-=b.v*dt);enemyBullets=enemyBullets.filter(b=>b.x>-20);
+enemies.forEach(e=>{e.x-=e.v*dt;e.cool-=dt;if(e.cool<0){enemyBullets.push({x:e.x-24,y:e.y,v:250,r:6});e.cool=1.6+Math.random()*1.5}});enemies=enemies.filter(e=>e.x>-100);
+if(enemies.length<4+Math.floor(wave/2))spawnEnemy();if(Math.floor(t/18)+1>wave){wave++;$('mission').textContent='New interceptors ahead — stay sharp.';updateHud()}
+bullets.forEach(b=>enemies.forEach(e=>{if(!e.dead&&hit({x:b.x,y:b.y,r:8},e)){e.dead=true;b.x=W+100;score+=100;if(Math.random()<.3)spawnPickup(e.x);}}));enemies=enemies.filter(e=>!e.dead);
+enemyBullets.forEach(b=>{if(hit({x:b.x,y:b.y,r:b.r},player)){b.x=-100;health-=8;updateHud();}});enemies.forEach(e=>{if(hit(e,player)){e.x=W+300;health-=18;updateHud()}});
+pickups.forEach(p=>{p.x-=125*dt;if(hit(p,player)){p.x=-200;if(p.type==='ammo'){ammo=Math.min(99,ammo+12);$('mission').textContent='Ammo crate recovered.'}else{health=Math.min(100,health+25);$('mission').textContent='Medkit recovered.'}updateHud()}});pickups=pickups.filter(p=>p.x>-100);if(health<=0)end();}
+function draw(){let dusk=Math.min(1,t/75);let sky=ctx.createLinearGradient(0,0,0,H);sky.addColorStop(0,`hsl(${201-dusk*18},${68-dusk*35}%,${70-dusk*28}%)`);sky.addColorStop(.68,`hsl(${203-dusk*14},${75-dusk*22}%,${58-dusk*22}%)`);sky.addColorStop(1,`hsl(${30+dusk*8},${72-dusk*20}%,${57-dusk*20}%)`);ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#f9d77a'+Math.floor(100+120*(1-dusk)).toString(16);ctx.beginPath();ctx.arc(1030,145,65,0,7);ctx.fill();ctx.fillStyle='#2d768c99';ctx.fillRect(0,570,W,150);ctx.fillStyle='#7fae8f66';for(let x=-((scroll*.35)%130);x<W;x+=130){ctx.beginPath();ctx.moveTo(x,570);ctx.lineTo(x+70,560+Math.sin(x)*5);ctx.lineTo(x+130,570);ctx.fill()}
+clouds.forEach(c=>{ctx.save();ctx.globalAlpha=c.alpha*(1-dusk*.35);ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(c.x,c.y,70*c.s,20*c.s,0,0,7);ctx.ellipse(c.x-42*c.s,c.y+4,38*c.s,18*c.s,0,0,7);ctx.ellipse(c.x+35*c.s,c.y+4,42*c.s,21*c.s,0,0,7);ctx.fill();ctx.restore()});
+pickups.forEach(p=>{ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle=p.type==='ammo'?'#f6c85f':'#8fd48b';ctx.fillRect(-16,-16,32,32);ctx.fillStyle='#10232c';if(p.type==='med'){ctx.fillRect(-4,-11,8,22);ctx.fillRect(-11,-4,22,8)}else{ctx.fillRect(-8,-10,16,20);ctx.fillStyle='#fff';ctx.fillRect(-4,-8,8,5);ctx.fillRect(-4,1,8,5)}ctx.restore()});
+enemies.forEach(e=>{ctx.save();ctx.translate(e.x,e.y);ctx.fillStyle='#31474d';ctx.beginPath();ctx.moveTo(30,0);ctx.lineTo(-25,-12);ctx.lineTo(-12,0);ctx.lineTo(-25,12);ctx.closePath();ctx.fill();ctx.fillStyle='#b9c4b5';ctx.fillRect(-15,-4,29,8);ctx.fillStyle='#d44b3f';ctx.beginPath();ctx.arc(-3,0,8,0,7);ctx.fill();ctx.restore()});
+bullets.forEach(b=>{ctx.fillStyle='#ffe69b';ctx.fillRect(b.x-15,b.y-2,20,4)});enemyBullets.forEach(b=>{ctx.fillStyle='#ef755a';ctx.beginPath();ctx.arc(b.x,b.y,5,0,7);ctx.fill()});drawPlayer();}
+function drawPlayer(){let x=player.x,y=player.y;ctx.save();ctx.translate(x,y);ctx.fillStyle='#40585a';ctx.beginPath();ctx.moveTo(48,0);ctx.lineTo(-28,-12);ctx.lineTo(-15,-3);ctx.lineTo(-46,-30);ctx.lineTo(-54,-27);ctx.lineTo(-30,-5);ctx.lineTo(-44,22);ctx.lineTo(-35,23);ctx.lineTo(-13,7);ctx.lineTo(44,7);ctx.closePath();ctx.fill();ctx.fillStyle='#c4c6ae';ctx.fillRect(-20,-6,60,13);ctx.fillStyle='#182d35';ctx.fillRect(-2,-10,22,7);ctx.fillStyle='#f6c85f';ctx.fillRect(-19,7,8,5);ctx.restore()}
+function loop(now){if(!running)return;let dt=Math.min(.035,(now-last)/1000);last=now;if(!paused)update(dt);draw();requestAnimationFrame(loop)}
+function togglePause(){if(!running)return;paused=!paused;$('mission').textContent=paused?'Paused — press P to continue.':'Formation moving east — watch the horizon.'}
+addEventListener('keydown',e=>{keys[e.key]=true;if(e.code==='Space'){e.preventDefault();fire=true;shoot()}if(e.key.toLowerCase()==='p')togglePause()});addEventListener('keyup',e=>{keys[e.key]=false;if(e.code==='Space')fire=false});canvas.addEventListener('pointerdown',e=>{fire=true;shoot()});addEventListener('pointerup',()=>fire=false);setInterval(()=>{if(fire)shoot()},80);
+$('startBtn').addEventListener('click',start);$('againBtn').addEventListener('click',start);
+draw();
+</script>
+</body></html>
