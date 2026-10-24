@@ -100,4 +100,14 @@ function advPlayer(){var wobble=Math.sin(t*7)*8;ctx.save();ctx.translate(player.
 function advDraw(){highSky();highClouds();pickups.forEach(function(p){ctx.save();ctx.translate(p.x,p.y);vfxGlow(0,0,38,p.type==='ammo'?'rgb(255,192,58)':'rgb(70,255,155)',.38);ctx.fillStyle=p.type==='ammo'?'#ffd15c':'#79f3a3';ctx.fillRect(-16,-16,32,32);ctx.fillStyle='#10232c';if(p.type==='med'){ctx.fillRect(-4,-11,8,22);ctx.fillRect(-11,-4,22,8)}else ctx.fillRect(-8,-10,16,20);ctx.restore()});enemies.forEach(advAircraft);highVfx();advPlayer();advBossHud();ctx.save();ctx.globalAlpha=.28;ctx.fillStyle='#fff';for(var y=0;y<H;y+=4)ctx.fillRect(0,y,W,1);ctx.restore()}
 update=advUpdate;draw=advDraw;shoot=advShoot;reset=advReset;$('startBtn').onclick=advStart;$('againBtn').onclick=advStart;advReset();advDraw();
 </script>
+<script>
+/* Boss reinforcement and damage-driven engine smoke. */
+var playerMaxHealth=100,bossBonusGranted=false,engineSmoke=[];
+var previousAdvReset=advReset,previousAdvUpdate=advUpdate,previousAdvPlayer=advPlayer;
+advHud=function(){$('ammo').textContent='∞';$('score').textContent=String(score).padStart(5,'0');$('wave').textContent=String(wave).padStart(2,'0');$('healthBar').style.width=Math.max(0,Math.min(100,health/playerMaxHealth*100))+'%';$('healthBar').style.background=health<playerMaxHealth*.35?'#e86d57':'#7ecb72'};
+advReset=function(){previousAdvReset();playerMaxHealth=100;bossBonusGranted=false;engineSmoke=[];health=playerMaxHealth;advHud()};
+advUpdate=function(dt){var wasBoss=!!boss;previousAdvUpdate(dt);if(boss&&!bossBonusGranted){bossBonusGranted=true;playerMaxHealth=150;health=Math.min(playerMaxHealth,health+50);$('mission').textContent='BOSS ARMOR BONUS — hull reinforced to 150.';advHud()}var damage=1-health/playerMaxHealth;if(health>0){if(Math.random()<dt*(1+damage*9))engineSmoke.push({x:player.x-44,y:player.y+(Math.random()-.5)*10,vx:28+Math.random()*35,vy:(Math.random()-.5)*22,size:5+damage*13+Math.random()*7,life:1.1+damage*.9,max:1.1+damage*.9,hot:damage});engineSmoke.forEach(function(s){s.x-=s.vx*dt;s.y+=s.vy*dt;s.size+=dt*(4+damage*10);s.life-=dt});engineSmoke=engineSmoke.filter(function(s){return s.life>0})}};
+advPlayer=function(){var damage=1-health/playerMaxHealth;engineSmoke.forEach(function(s){var q=s.life/s.max;ctx.fillStyle='rgba(45,48,54,'+(q*(.12+damage*.28))+')';ctx.beginPath();ctx.arc(s.x,s.y,s.size*(1.1-q*.2),0,7);ctx.fill()});if(damage>.16){var flame=10+damage*27;vfxGlow(player.x-42,player.y,flame,'rgb(255,90,35)',.45+damage*.35);ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle='rgba(255,190,70,'+(.45+damage*.4)+')';ctx.beginPath();ctx.moveTo(player.x-38,player.y-4);ctx.lineTo(player.x-38-flame,player.y);ctx.lineTo(player.x-38,player.y+4);ctx.fill();ctx.restore()}previousAdvPlayer()};
+update=advUpdate;draw=advDraw;shoot=advShoot;advReset();advDraw();
+</script>
 </body></html>
