@@ -145,4 +145,17 @@ advDraw=function(){baseImmersiveDraw();drawFragments();drawCockpitTelemetry()};
 advReset=function(){airFragments=[];baseCampaignReset();};
 update=advUpdate;draw=advDraw;reset=advReset;advReset();advDraw();
 </script>
+<script>
+/* Acceleration, speed telemetry and deeper parallax flight motion. */
+var flightSpeed=120,cruiseSpeed=120,maxFlightSpeed=420,speedExhaust=[],baseFlightUpdate=advUpdate,baseFlightDraw=advDraw,baseFlightPlayer=advPlayer,baseFlightSky=highSky,baseFlightReset=advReset;
+var speedCard=document.createElement('div');speedCard.className='card';speedCard.innerHTML='<div class="label">Speed</div><div class="value" id="speedValue">120</div><div class="meter"><i id="speedBar"></i></div>';document.querySelector('.hud').appendChild(speedCard);
+function drawMountainLayer(base,height,color,parallax){ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,H);for(var x=-160-((scroll*parallax)%320);x<W+320;x+=160){var peak=base-height*(.45+Math.sin(x*.017)*.22);ctx.lineTo(x,base);ctx.lineTo(x+78,peak);ctx.lineTo(x+160,base)}ctx.lineTo(W,H);ctx.closePath();ctx.fill()}
+function speedTelemetry(){var v=Math.round(flightSpeed);$('speedValue').textContent=v+' KTS';$('speedBar').style.width=Math.max(0,Math.min(100,(v/maxFlightSpeed)*100))+'%';$('speedBar').style.background=v>330?'#ef795c':v>220?'#f3c85e':'#72d8e2'}
+function speedReset(){baseFlightReset();flightSpeed=cruiseSpeed;speedExhaust=[];speedTelemetry()}
+highSky=function(){baseFlightSky();drawMountainLayer(574,112,'#1c526766',.18);drawMountainLayer(582,78,'#174152aa',.34);drawMountainLayer(590,45,'#102d3dcc',.62)};
+advUpdate=function(dt){var accelerating=keys.KeyD||keys.d||keys.D;var target=accelerating?maxFlightSpeed:cruiseSpeed;var rate=accelerating?190:250;flightSpeed+=(target-flightSpeed)*Math.min(1,rate*dt/Math.max(1,Math.abs(target-flightSpeed)+80));flightSpeed=Math.max(0,Math.min(maxFlightSpeed,flightSpeed));baseFlightUpdate(dt);scroll+=(flightSpeed-cruiseSpeed)*dt*.9;var thrust=Math.max(0,(flightSpeed-cruiseSpeed)/(maxFlightSpeed-cruiseSpeed));if(thrust>.03&&Math.random()<dt*(5+thrust*12))speedExhaust.push({x:player.x-45,y:player.y+(Math.random()-.5)*9,life:.35+Math.random()*.3,max:.65,size:2+thrust*4});speedExhaust.forEach(function(p){p.x-=(65+flightSpeed*.35)*dt;p.life-=dt;p.size+=dt*4});speedExhaust=speedExhaust.filter(function(p){return p.life>0});speedTelemetry()};
+advPlayer=function(){var thrust=Math.max(0,(flightSpeed-cruiseSpeed)/(maxFlightSpeed-cruiseSpeed)),rumble=thrust*Math.sin(t*42)*2.5,tilt=thrust*Math.sin(t*8)*.045;ctx.save();ctx.translate(rumble,Math.sin(t*34)*thrust*1.5);ctx.globalCompositeOperation='lighter';speedExhaust.forEach(function(p){ctx.fillStyle='rgba(255,170,72,'+(p.life/p.max)+')';ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,7);ctx.fill()});ctx.globalAlpha=.18+thrust*.24;ctx.strokeStyle='#ffc15e';ctx.beginPath();ctx.arc(player.x+48,player.y,12+thrust*8,t*28,t*28+4.8);ctx.stroke();ctx.beginPath();ctx.arc(player.x+48,player.y,17+thrust*10,t*28+3,t*28+6.3);ctx.stroke();ctx.restore();var old=player.angle;player.angle+=tilt;baseFlightPlayer();player.angle=old};
+advDraw=function(){var thrust=Math.max(0,(flightSpeed-cruiseSpeed)/(maxFlightSpeed-cruiseSpeed)),shake=thrust>0.72?Math.sin(t*38)*thrust*2.2:0;ctx.save();ctx.translate(shake,Math.cos(t*31)*shake*.7);baseFlightDraw();ctx.restore()};
+advReset=function(){baseFlightReset();flightSpeed=cruiseSpeed;speedExhaust=[];speedTelemetry()};update=advUpdate;draw=advDraw;reset=advReset;advReset();advDraw();
+</script>
 </body></html>
