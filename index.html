@@ -158,4 +158,12 @@ advPlayer=function(){var thrust=Math.max(0,(flightSpeed-cruiseSpeed)/(maxFlightS
 advDraw=function(){var thrust=Math.max(0,(flightSpeed-cruiseSpeed)/(maxFlightSpeed-cruiseSpeed)),shake=thrust>0.72?Math.sin(t*38)*thrust*2.2:0;ctx.save();ctx.translate(shake,Math.cos(t*31)*shake*.7);baseFlightDraw();ctx.restore()};
 advReset=function(){baseFlightReset();flightSpeed=cruiseSpeed;speedExhaust=[];speedTelemetry()};update=advUpdate;draw=advDraw;reset=advReset;advReset();advDraw();
 </script>
+<script>
+/* Speed-linked parallax and player bounding. */
+var parallaxBaseUpdate=advUpdate,parallaxBaseSky=highSky;
+function drawSpeedStars(){ctx.save();ctx.globalAlpha=.35;ctx.fillStyle='#d9f4ff';for(var i=0;i<34;i++){var sx=(i*227-(scroll*.08))%W;if(sx<0)sx+=W;var sy=35+(i*83)%360;ctx.fillRect(sx,sy,1+(i%2),1+(i%2))}ctx.restore();ctx.save();ctx.globalAlpha=.22;ctx.fillStyle='#55d4e9';for(var j=-1;j<18;j++){var gx=j*90-((scroll*1.45)%90);ctx.fillRect(gx,548+(j%3)*8,58+Math.min(35,flightSpeed*.08),2)}ctx.restore()}
+highSky=function(){parallaxBaseSky();drawSpeedStars()};
+advUpdate=function(dt){parallaxBaseUpdate(dt);var boost=Math.max(0,flightSpeed-cruiseSpeed),world=boost*dt;clouds.forEach(function(c){c.x-=world*(.12+.38*(c.depth||.5))});enemies.forEach(function(e){e.x-=world*(.62+(e.type===AircraftType.Boss?.12:0))});enemyBullets.forEach(function(b){b.x-=world*.7});pickups.forEach(function(p){p.x-=world*.52});player.x=Math.max(165,Math.min(260,player.x))};
+update=advUpdate;draw=advDraw;advUpdate(0);advDraw();
+</script>
 </body></html>
