@@ -166,4 +166,10 @@ highSky=function(){parallaxBaseSky();drawSpeedStars()};
 advUpdate=function(dt){parallaxBaseUpdate(dt);var boost=Math.max(0,flightSpeed-cruiseSpeed),world=boost*dt;clouds.forEach(function(c){c.x-=world*(.12+.38*(c.depth||.5))});enemies.forEach(function(e){e.x-=world*(.62+(e.type===AircraftType.Boss?.12:0))});enemyBullets.forEach(function(b){b.x-=world*.7});pickups.forEach(function(p){p.x-=world*.52});player.x=Math.max(165,Math.min(260,player.x))};
 update=advUpdate;draw=advDraw;advUpdate(0);advDraw();
 </script>
+<script>
+/* High-speed interceptor pressure. */
+var speedSpawnClock=0,basePressureUpdate=advUpdate;
+advUpdate=function(dt){basePressureUpdate(dt);speedSpawnClock-=dt;var boost=Math.max(0,flightSpeed-cruiseSpeed),extra=Math.floor(boost/70);if(speedSpawnClock<=0&&extra>0&&!boss){var count=Math.min(3,1+extra);for(var i=0;i<count;i++)advSpawn(W+80+i*85,AircraftType.Fighter);speedSpawnClock=Math.max(.38,1.25-extra*.12);if(extra>=3)$('mission').textContent='HIGH SPEED — extra interceptors incoming.'}};
+update=advUpdate;draw=advDraw;
+</script>
 </body></html>
