@@ -196,4 +196,14 @@ advReset=function(){baseSystemsReset();distanceMeters=0;nextBossDistance=5000;sc
 shoot=function(){if(hyperActive>0){var saved=player.cool;player.cool=0;baseSystemsShoot();player.cool=Math.min(saved,.06)}else baseSystemsShoot()};
 addEventListener('keydown',function(e){if(e.key.toLowerCase()==='h')activateHyper()});update=advUpdate;draw=advDraw;reset=advReset;advReset();advDraw();
 </script>
+<script>
+/* Performance pass: lower GPU pressure while preserving the game systems. */
+var lowPowerDpr=Math.min(devicePixelRatio||1,1.25),perfTick=0,perfBaseUpdate=advUpdate,perfBaseDraw=advDraw;
+function lowPowerResize(){canvas.width=W*lowPowerDpr;canvas.height=H*lowPowerDpr;ctx.setTransform(lowPowerDpr,0,0,lowPowerDpr,0,0);ctx.imageSmoothingEnabled=true}addEventListener('resize',lowPowerResize);lowPowerResize();
+var fullSpeedTelemetry=speedTelemetry;speedTelemetry=function(){perfTick++;if(perfTick%4===0)fullSpeedTelemetry()};
+drawSpeedStars=function(){};
+function trimList(list,max){if(list.length>max)list.splice(0,list.length-max)}
+advUpdate=function(dt){perfBaseUpdate(dt);trimList(aerialVfx.sparks,90);trimList(aerialVfx.smoke,45);trimList(aerialVfx.blasts,12);trimList(aerialVfx.muzzle,8);trimList(airFragments,45);trimList(goldenScrap,24);trimList(enemyBullets,55);trimList(bullets,80);if(clouds.length>14)clouds.length=14};
+advDraw=function(){ctx.imageSmoothingEnabled=true;perfBaseDraw()};update=advUpdate;draw=advDraw;
+</script>
 </body></html>
