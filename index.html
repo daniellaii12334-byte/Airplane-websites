@@ -132,4 +132,17 @@ advReset=function(){baseCampaignReset();campaignLevel=1;levelComplete=false;boss
 advUpdate=function(dt){var hadBoss=!!boss;baseCampaignUpdate(dt);if(hadBoss&&!boss&&!levelComplete)showLanding()};
 $('continueBtn').onclick=continueCampaign;update=advUpdate;reset=advReset;advReset();advDraw();
 </script>
+<script>
+/* Immersive flight layer: waterline collision, gravity debris, turbulence and cockpit telemetry. */
+var seaLevel=570,airFragments=[],baseImmersiveUpdate=advUpdate,baseImmersiveDraw=advDraw,baseImmersivePlayer=advPlayer;
+function flingFragments(e){var n=e.type===AircraftType.Boss?22:e.type===AircraftType.Bomber?12:7;for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,v=70+Math.random()*190;airFragments.push({x:e.x,y:e.y,dx:Math.cos(a)*v-70,dy:-80-Math.random()*170,gravity:220+Math.random()*130,size:2+Math.random()*5,rot:Math.random()*7,spin:(Math.random()-.5)*9,life:5,max:5,water:false})}}
+function updateFragments(dt){airFragments.forEach(function(f){if(!f.water){f.x+=f.dx*dt;f.y+=f.dy*dt;f.dy+=f.gravity*dt;f.rot+=f.spin*dt;if(f.y>=seaLevel-3){f.y=seaLevel-3;f.water=true;f.life=1.1}}else{f.life-=dt}});airFragments=airFragments.filter(function(f){return f.life>0})}
+function drawFragments(){ctx.save();ctx.globalCompositeOperation='lighter';airFragments.forEach(function(f){if(f.water){ctx.strokeStyle='rgba(100,225,242,'+(f.life/1.1)+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(f.x,seaLevel,f.size*5*(1-f.life/1.1),f.size,0,0,7);ctx.stroke()}else{ctx.save();ctx.translate(f.x,f.y);ctx.rotate(f.rot);ctx.fillStyle=f.size>5?'#d59a55':'#b8c6c4';ctx.fillRect(-f.size,-f.size/2,f.size*2.5,f.size);ctx.restore()}});ctx.restore()}
+function drawCockpitTelemetry(){var x=W-178,y=H-144,shake=Math.sin(t*20)*.8;ctx.save();ctx.translate(shake,shake);ctx.fillStyle='#07121dcc';ctx.strokeStyle='#6ce7dd88';ctx.lineWidth=1;ctx.fillRect(x,y,155,102);ctx.strokeRect(x,y,155,102);ctx.fillStyle='#9beee0';ctx.font='10px Arial';ctx.fillText('FLIGHT DECK // LIVE',x+12,y+16);ctx.strokeStyle='#f3c85e';ctx.beginPath();ctx.arc(x+44,y+56,25,0,7);ctx.stroke();ctx.fillStyle='#f3c85e';ctx.fillRect(x+43,y+35,2,20);ctx.fillStyle='#78d9ed';ctx.fillRect(x+82,y+39,54,7);ctx.fillStyle='#ef795c';ctx.fillRect(x+82,y+39,Math.min(54,54*(1-health/(playerMaxHealth||100))),7);ctx.fillStyle='#bdebe4';ctx.fillText('G-FORCE',x+82,y+62);ctx.fillText((1+Math.abs(Math.sin(t*3))*.35).toFixed(2)+' G',x+82,y+78);ctx.fillText('THRUST  100%',x+12,y+91);ctx.restore()}
+advUpdate=function(dt){var before=enemies.slice();baseImmersiveUpdate(dt);enemies.forEach(function(e){var floor=seaLevel-e.r-8;if(e.y>floor){e.y=floor;e.dy=undefined}});before.forEach(function(e){if(e.dead&&!enemies.includes(e))flingFragments(e)});updateFragments(dt)};
+advPlayer=function(){var damage=1-health/(playerMaxHealth||100),turb=Math.sin(t*5.5)*(.012+damage*.028);ctx.save();ctx.globalAlpha=.09+damage*.12;ctx.strokeStyle='#ffcc78';for(var i=0;i<4;i++){ctx.beginPath();ctx.moveTo(player.x-50-i*6,player.y-12+i*7);ctx.quadraticCurveTo(player.x-72-i*8,player.y+Math.sin(t*8+i)*8,player.x-92-i*10,player.y-7+i*8);ctx.stroke()}ctx.restore();var oldAngle=player.angle;player.angle+=turb;baseImmersivePlayer();player.angle=oldAngle};
+advDraw=function(){baseImmersiveDraw();drawFragments();drawCockpitTelemetry()};
+advReset=function(){airFragments=[];baseCampaignReset();};
+update=advUpdate;draw=advDraw;reset=advReset;advReset();advDraw();
+</script>
 </body></html>
