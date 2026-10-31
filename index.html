@@ -235,4 +235,13 @@ shoot=pooledShoot;update=advUpdate;draw=advDraw;reset=advReset;
 addEventListener('keydown',function(e){var k=e.key.toLowerCase();if(k==='1')setWeapon('single',0);if(k==='2')setWeapon('spread',15);if(k==='3')setWeapon('homing',15);if(k==='4'){shieldTime=8;$('mission').textContent='KINETIC SHIELD ONLINE.'}if(k==='5')activateEmp();if(k==='6')setWeapon('cluster',12);if(k==='7'){droneTime=12;$('mission').textContent='WINGMAN DRONES DEPLOYED.'}if(k==='8'){magnetTime=12;$('mission').textContent='MAGNETIC SALVAGE ONLINE.'}});
 advReset();advDraw();
 </script>
+<script>
+/* Stability pass: prevent duplicate animation loops and runaway active objects. */
+start=function(){};
+var stableBaseUpdate=advUpdate;
+advUpdate=function(dt){stableBaseUpdate(dt);if(enemies.length>30){var keep=enemies.filter(function(e){return e.type===AircraftType.Boss});enemies=enemies.slice(-30).concat(keep).filter(function(e,i,a){return a.indexOf(e)===i})}if(enemyBullets.length>34)enemyBullets.splice(0,enemyBullets.length-34);if(bullets.length>32)bullets.splice(0,bullets.length-32);if(aerialVfx.sparks.length>28)aerialVfx.sparks.splice(0,aerialVfx.sparks.length-28);if(aerialVfx.smoke.length>18)aerialVfx.smoke.splice(0,aerialVfx.smoke.length-18);if(clouds.length>10)clouds.length=10};
+vfxExplosion=function(x,y){var b=poolTake(blastPool);b.x=x;b.y=y;b.r=5;b.life=.16;b.max=.16;aerialVfx.blasts.push(b)};
+vfxBurst=function(){};
+update=advUpdate;draw=advDraw;
+</script>
 </body></html>
